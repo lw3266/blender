@@ -18,12 +18,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Full Clone (fetch-depth: 0 is equivalent to GIT_DEPTH: 0)
+      # Step 1: Shallow Clone (Only downloads the single triggering branch, no history)
       - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Full git history (no shallow clone)
-          submodules: recursive
+          fetch-depth: 1      # Optimizes git fetch to only download the single target branch
+          submodules: recursive # Required for Blender, but will also be shallow fetched
 
       # Step 2: Install Official Ubuntu Build Dependencies + OpenCL
       - name: Install System Dependencies
