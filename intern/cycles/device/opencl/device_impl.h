@@ -8,11 +8,13 @@
 #  define CL_TARGET_OPENCL_VERSION 300
 #  include <CL/cl.h>
 
+#  include "bvh/params.h"
 #  include "device/device.h"
 #  include "device/opencl/device.h"
-#  include "kernel/types.h"
 
 CCL_NAMESPACE_BEGIN
+
+struct DeviceRequestedFeatures;
 
 class OpenCLDevice : public Device {
  public:
@@ -25,13 +27,16 @@ class OpenCLDevice : public Device {
   OpenCLDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless);
   ~OpenCLDevice() override;
 
+  BVHLayoutMask get_bvh_layout_mask(const uint kernel_features) const override;
   bool load_kernels(const DeviceRequestedFeatures &requested_features) override;
 
+  void const_copy_to(const char *name, void *host, const size_t size) override;
   void mem_alloc(device_memory &mem) override;
   void mem_copy_to(device_memory &mem) override;
   void mem_copy_from(device_memory &mem, size_t y, size_t w, size_t h, size_t elem) override;
   void mem_zero(device_memory &mem) override;
   void mem_free(device_memory &mem) override;
+  void mem_move_to_host(device_memory &mem) override;
 
   unique_ptr<DeviceQueue> gpu_queue_create() override;
 

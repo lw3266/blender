@@ -5,6 +5,7 @@
 
 #  include "device/opencl/device_impl.h"
 #  include "device/opencl/queue.h"
+#  include "scene/scene.h"
 #  include "util/log.h"
 #  include "util/path.h"
 #  include "util/string.h"
@@ -106,6 +107,11 @@ OpenCLDevice::~OpenCLDevice()
   if (cl_context_id) clReleaseContext(cl_context_id);
 }
 
+BVHLayoutMask OpenCLDevice::get_bvh_layout_mask(const uint /*kernel_features*/) const
+{
+  return BVH_LAYOUT_BVH2;
+}
+
 bool OpenCLDevice::compile_opencl_cpp_program()
 {
   string kernel_path = path_get("scripts/addons/cycles/kernel/device/opencl/kernel.clcpp");
@@ -155,6 +161,10 @@ bool OpenCLDevice::load_kernels(const DeviceRequestedFeatures &)
   return true;
 }
 
+void OpenCLDevice::const_copy_to(const char * /*name*/, void * /*host*/, const size_t /*size*/)
+{
+}
+
 void OpenCLDevice::mem_alloc(device_memory &mem)
 {
   cl_int err;
@@ -196,6 +206,10 @@ void OpenCLDevice::mem_free(device_memory &mem)
     clReleaseMemObject((cl_mem)mem.device_pointer);
     mem.device_pointer = 0;
   }
+}
+
+void OpenCLDevice::mem_move_to_host(device_memory & /*mem*/)
+{
 }
 
 unique_ptr<DeviceQueue> OpenCLDevice::gpu_queue_create()

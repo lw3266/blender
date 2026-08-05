@@ -21,6 +21,10 @@ class OpenCLDeviceQueue : public DeviceQueue {
   OpenCLDeviceQueue(OpenCLDevice *device);
   ~OpenCLDeviceQueue() override;
 
+  int num_concurrent_states(const size_t state_size) const override;
+  int num_concurrent_busy_states(const size_t state_size) const override;
+
+  void init_execution() override;
   void load_image_info() override;
   bool synchronize() override;
   bool enqueue(DeviceKernel kernel, int work_size, const DeviceKernelArguments &args) override;

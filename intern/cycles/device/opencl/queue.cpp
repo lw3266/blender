@@ -20,8 +20,22 @@ OpenCLDeviceQueue::~OpenCLDeviceQueue()
   if (cl_queue) clReleaseCommandQueue(cl_queue);
 }
 
+int OpenCLDeviceQueue::num_concurrent_states(const size_t /*state_size*/) const
+{
+  return 65536;
+}
+
+int OpenCLDeviceQueue::num_concurrent_busy_states(const size_t /*state_size*/) const
+{
+  return 65536;
+}
+
+void OpenCLDeviceQueue::init_execution()
+{
+}
+
 void OpenCLDeviceQueue::load_image_info()
-{;
+{
 }
 
 bool OpenCLDeviceQueue::synchronize()
