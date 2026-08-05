@@ -59,13 +59,13 @@ void device_opencl_info(vector<DeviceInfo> &devices)
 unique_ptr<Device> device_opencl_create(const DeviceInfo &info,
                                         Stats &stats,
                                         Profiler &profiler,
-                                        bool /*headless*/)
+                                        bool headless)
 {
-  return make_unique<OpenCLDevice>(info, stats, profiler);
+  return make_unique<OpenCLDevice>(info, stats, profiler, headless);
 }
 
-OpenCLDevice::OpenCLDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler)
-    : Device(info, stats, profiler), cl_prog(NULL)
+OpenCLDevice::OpenCLDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless)
+    : Device(info, stats, profiler, headless), cl_prog(NULL)
 {
   cl_uint num_platforms = 0;
   clGetPlatformIDs(0, NULL, &num_platforms);
@@ -109,7 +109,10 @@ OpenCLDevice::~OpenCLDevice()
 bool OpenCLDevice::compile_opencl_cpp_program()
 {
   string kernel_path = path_get("scripts/addons/cycles/kernel/device/opencl/kernel.clcpp");
-  string source_code = path_read_text(kernel_path);
+  string source_code;
+  if (!path_read_text(kernel_path, source_code)) {
+    return false;
+  }
   const char *src = source_code.c_str();
 
   cl_int err;
@@ -125,7 +128,7 @@ bool OpenCLDevice::compile_opencl_cpp_program()
     clGetProgramBuildInfo(cl_prog, cl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
     vector<char> log(log_size);
     clGetProgramBuildInfo(cl_prog, cl_device, CL_PROGRAM_BUILD_LOG, log_size, log.data(), NULL);
-    LOG(ERROR) << "OpenCL C++ Compilation Error:\n" << log.data();
+    LOG_ERROR << "OpenCL C++ Compilation Error:\n" << log.data();
     return false;
   }
   return true;

@@ -20,15 +20,22 @@ OpenCLDeviceQueue::~OpenCLDeviceQueue()
   if (cl_queue) clReleaseCommandQueue(cl_queue);
 }
 
-void OpenCLDeviceQueue::synchronize()
-{
-  if (cl_queue) clFinish(cl_queue);
+void OpenCLDeviceQueue::load_image_info()
+{;
 }
 
-void OpenCLDeviceQueue::enqueue(DeviceKernel kernel, int work_size, DeviceKernelArguments args)
+bool OpenCLDeviceQueue::synchronize()
+{
+  if (cl_queue) {
+    return (clFinish(cl_queue) == CL_SUCCESS);
+  }
+  return false;
+}
+
+bool OpenCLDeviceQueue::enqueue(DeviceKernel kernel, int work_size, const DeviceKernelArguments &args)
 {
   cl_kernel cl_kern = opencl_device->kernels[kernel];
-  if (!cl_kern) return;
+  if (!cl_kern) return false;
 
   /* Bind device kernel arguments dynamically */
   int arg_idx = 0;
@@ -44,7 +51,31 @@ void OpenCLDeviceQueue::enqueue(DeviceKernel kernel, int work_size, DeviceKernel
   }
 
   size_t global_size = work_size;
-  clEnqueueNDRangeKernel(cl_queue, cl_kern, 1, NULL, &global_size, NULL, 0, NULL, NULL);
+  cl_int err = clEnqueueNDRangeKernel(cl_queue, cl_kern, 1, NULL, &global_size, NULL, 0, NULL, NULL);
+  return (err == CL_SUCCESS);
+}
+
+void OpenCLDeviceQueue::zero_to_device(device_memory &mem)
+{
+  opencl_device->mem_zero(mem);
+}
+
+void OpenCLDeviceQueue::copy_to_device(device_memory &mem)
+{
+  opencl_device->mem_copy_to(mem);
+}
+
+void OpenCLDeviceQueue::copy_from_device(device_memory &mem)
+{
+  opencl_device->mem_copy_from(mem, 0, mem.data_width, mem.data_height, sizeof(uint8_t));
+}
+
+void *OpenCLDeviceQueue::copy_from_device_synchronized(device_memory &mem, vector<uint8_t> &storage)
+{
+  storage.resize(mem.memory_size());
+  cl_mem cl_buf = (cl_mem)mem.device_pointer;
+  clEnqueueReadBuffer(cl_queue, cl_buf, CL_TRUE, 0, mem.memory_size(), storage.data(), 0, NULL, NULL);
+  return storage.data();
 }
 
 CCL_NAMESPACE_END

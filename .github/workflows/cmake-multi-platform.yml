@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 1
           submodules: recursive
 
-      # Step 2: Install Official Ubuntu Build Dependencies + OpenCL
+      # Step 2: Install Official Ubuntu Build Dependencies + OpenCL + ccache
       - name: Install System Dependencies
         run: |
           sudo apt-get update
@@ -49,12 +49,13 @@ jobs:
             opencl-headers \
             ocl-icd-opencl-dev \
             gcc-14 \
-            g++-14
+            g++-14 \
+            ccache
 
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
           sudo update-alternatives --set gcc /usr/bin/gcc-14
 
-      # Step 3: Cache Precompiled Libraries (FIXED: Uses absolute path)
+      # Step 3: Cache Precompiled SVN Libraries
       - name: Cache Blender SVN Libraries
         uses: actions/cache@v4
         with:
@@ -63,15 +64,33 @@ jobs:
           restore-keys: |
             blender-lib-linux-
 
-      # Step 4: Download Precompiled Dependencies (OPTIMIZED: Multi-threaded SVN sync)
+      # NEW STEP: Cache Build Artifacts / Modules via ccache
+      - name: Cache Compiler Objects (ccache)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: blender-ccache-linux-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            blender-ccache-linux-${{ github.ref_name }}-
+            blender-ccache-linux-
+
+      # Step 4: Download Precompiled Dependencies
       - name: Download Precompiled Libraries
         run: |
           make update SVN_FLAGS="--threads 4"
 
-      # Step 5: Configure and Build Blender (OPTIMIZED: Uses all 2 CPU cores)
+      # Step 5: Configure and Build Blender (OPTIMIZED: Configured with ccache)
       - name: Build Blender with OpenCL
         run: |
-          make release -j2 BUILD_CMAKE_ARGS="-DWITH_CYCLES_DEVICE_OPENCL=ON"
+          # Configure ccache performance variables
+          export CCACHE_COMPRESS=true
+          export CCACHE_MAXSIZE=2G
+          
+          # Pass WITH_COMPILER_CCACHE to Blender's underlying CMake setup
+          make release -j2 BUILD_CMAKE_ARGS="-DWITH_CYCLES_DEVICE_OPENCL=ON -DWITH_COMPILER_CCACHE=ON"
+          
+          # Print cache statistics at the end of the build to monitor hit rate
+          ccache -s
 
       # Step 6: Package Binaries
       - name: Compress Compiled Artifacts

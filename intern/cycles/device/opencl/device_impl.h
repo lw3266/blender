@@ -5,10 +5,12 @@
 
 #ifdef WITH_OPENCL
 
+#  define CL_TARGET_OPENCL_VERSION 300
 #  include <CL/cl.h>
 
 #  include "device/device.h"
 #  include "device/opencl/device.h"
+#  include "kernel/types.h"
 
 CCL_NAMESPACE_BEGIN
 
@@ -20,7 +22,7 @@ class OpenCLDevice : public Device {
   cl_program cl_prog;
   cl_kernel kernels[DEVICE_KERNEL_NUM];
 
-  OpenCLDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler);
+  OpenCLDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless);
   ~OpenCLDevice() override;
 
   bool load_kernels(const DeviceRequestedFeatures &requested_features) override;
@@ -32,10 +34,6 @@ class OpenCLDevice : public Device {
   void mem_free(device_memory &mem) override;
 
   unique_ptr<DeviceQueue> gpu_queue_create() override;
-
-  bool show_samples() const override {
-    return true;
-  }
 
  private:
   bool compile_opencl_cpp_program();
