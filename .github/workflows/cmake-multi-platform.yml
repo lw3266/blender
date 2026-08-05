@@ -47,7 +47,8 @@ jobs:
             libxkbcommon-dev \
             libdbus-1-dev \
             opencl-headers \
-            ocl-icd-opencl-dev
+            ocl-icd-opencl-dev \
+            gcc-14
 
       # Step 3: Cache Precompiled Libraries (FIXED: Uses absolute path)
       - name: Cache Blender SVN Libraries
