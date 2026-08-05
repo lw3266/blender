@@ -48,7 +48,11 @@ jobs:
             libdbus-1-dev \
             opencl-headers \
             ocl-icd-opencl-dev \
-            gcc-14
+            gcc-14 \
+            g++-14
+
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
+          sudo update-alternatives --set gcc /usr/bin/gcc-14
 
       # Step 3: Cache Precompiled Libraries (FIXED: Uses absolute path)
       - name: Cache Blender SVN Libraries
