@@ -10,7 +10,11 @@ CCL_NAMESPACE_BEGIN
 class Device;
 class DeviceInfo;
 
+bool device_opencl_init();
 void device_opencl_info(vector<DeviceInfo> &devices);
-Device *device_opencl_create(const DeviceInfo &info, Stats &stats, Profiler &profiler);
+unique_ptr<Device> device_opencl_create(const DeviceInfo &info,
+                                        Stats &stats,
+                                        Profiler &profiler,
+                                        bool headless);
 
 CCL_NAMESPACE_END

@@ -13,6 +13,15 @@
 
 CCL_NAMESPACE_BEGIN
 
+bool device_opencl_init()
+{
+  cl_uint num_platforms = 0;
+  if (clGetPlatformIDs(0, NULL, &num_platforms) != CL_SUCCESS || num_platforms == 0) {
+    return false;
+  }
+  return true;
+}
+
 void device_opencl_info(vector<DeviceInfo> &devices)
 {
   cl_uint num_platforms = 0;
@@ -47,9 +56,12 @@ void device_opencl_info(vector<DeviceInfo> &devices)
   }
 }
 
-Device *device_opencl_create(const DeviceInfo &info, Stats &stats, Profiler &profiler)
+unique_ptr<Device> device_opencl_create(const DeviceInfo &info,
+                                        Stats &stats,
+                                        Profiler &profiler,
+                                        bool /*headless*/)
 {
-  return new OpenCLDevice(info, stats, profiler);
+  return make_unique<OpenCLDevice>(info, stats, profiler);
 }
 
 OpenCLDevice::OpenCLDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler)
@@ -105,7 +117,7 @@ bool OpenCLDevice::compile_opencl_cpp_program()
   if (err != CL_SUCCESS) return false;
 
   /* Use Clang OpenCL C++ / SPIR-V flags */
-  const char *build_options = "-cl-std=CLC++ -I" ;
+  const char *build_options = "-cl-std=CLC++ -I";
   err = clBuildProgram(cl_prog, 1, &cl_device, build_options, NULL, NULL);
 
   if (err != CL_SUCCESS) {
