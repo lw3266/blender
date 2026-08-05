@@ -1,0 +1,84 @@
+name: Build Blender (Linux)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - blender-v2.93-release
+      - "feature/**"
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build Blender on Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout Repository
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Step 2: Install Official Ubuntu Build Dependencies
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            git \
+            subversion \
+            python3 \
+            libx11-dev \
+            libxxf86vm-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libegl1-mesa-dev \
+            libwayland-dev \
+            wayland-protocols \
+            libxkbcommon-dev \
+            libdbus-1-dev \
+            opencl-headers \
+            ocl-icd-opencl-dev
+
+      # Step 3: Cache Precompiled Libraries (Accelerates future runs)
+      - name: Cache Blender SVN Libraries
+        uses: actions/cache@v4
+        with:
+          path: ../lib/
+          key: blender-lib-linux-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            blender-lib-linux-
+
+      # Step 4: Download Precompiled Libraries (Official Blender Guide)
+      - name: Download Precompiled Libraries
+        run: |
+          make update
+
+      # Step 5: Configure and Build Blender
+      - name: Build Blender with OpenCL
+        run: |
+          # 'make release' builds optimized release binaries
+          # BUILD_CMAKE_ARGS passes our custom OpenCL flag directly to CMake
+          make release BUILD_CMAKE_ARGS="-DWITH_CYCLES_DEVICE_OPENCL=ON"
+
+      # Step 6: Package Binaries
+      - name: Compress Compiled Artifacts
+        run: |
+          tar -czvf blender-linux-opencl.tar.gz -C ../build_linux/bin .
+
+      # Step 7: Upload Build Artifact to GitHub
+      - name: Upload Blender Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-linux-opencl-build
+          path: blender-linux-opencl.tar.gz
+          retention-days: 7
