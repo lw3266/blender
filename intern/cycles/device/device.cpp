@@ -19,6 +19,7 @@
 #include "device/multi/device.h"
 #include "device/oneapi/device.h"
 #include "device/optix/device.h"
+#include "device/opencl/device.h"
 
 #include "util/log.h"
 #include "util/math.h"
@@ -67,6 +68,12 @@ vector<DeviceInfo> &Device::metal_devices()
 }
 
 vector<DeviceInfo> &Device::oneapi_devices()
+{
+  static vector<DeviceInfo> devices_;
+  return devices_;
+}
+
+vector<DeviceInfo> &Device::opencl_devices()
 {
   static vector<DeviceInfo> devices_;
   return devices_;
@@ -153,6 +160,12 @@ unique_ptr<Device> Device::create(const DeviceInfo &info,
       break;
 #endif
 
+#ifdef WITH_OPENCL
+    case DEVICE_OPENCL:
+      device = device_opencl_create(info, stats, profiler, headless);
+      break;
+#endif
+
     default:
       break;
   }
@@ -190,6 +203,9 @@ DeviceType Device::type_from_string(const char *name)
   if (strcmp(name, "HIPRT") == 0) {
     return DEVICE_HIPRT;
   }
+  if (strcmp(name, "OPENCL") == 0) {
+    return DEVICE_OPENCL;
+  }
 
   return DEVICE_NONE;
 }
@@ -220,6 +236,9 @@ string Device::string_from_type(DeviceType type)
   if (type == DEVICE_HIPRT) {
     return "HIPRT";
   }
+  if (type == DEVICE_OPENCL) {
+    return "OPENCL";
+  }
 
   return "";
 }
@@ -246,6 +265,10 @@ vector<DeviceType> Device::available_types()
 #ifdef WITH_HIPRT
   types.push_back(DEVICE_HIPRT);
 #endif
+#ifdef WITH_OPENCL
+  types.push_back(DEVICE_OPENCL);
+#endif
+
   return types;
 }
 
@@ -364,6 +387,20 @@ vector<DeviceInfo> Device::available_devices(const uint mask)
       devices_initialized_mask |= DEVICE_MASK_METAL;
     }
     for (const DeviceInfo &info : metal_devices()) {
+      devices.push_back(info);
+    }
+  }
+#endif
+
+#ifdef WITH_OPENCL
+  if (mask & DEVICE_MASK_OPENCL) {
+    if (!(devices_initialized_mask & DEVICE_MASK_OPENCL)) {
+      if (device_opencl_init()) {
+        device_opencl_info(opencl_devices());
+      }
+      devices_initialized_mask |= DEVICE_MASK_OPENCL;
+    }
+    for (DeviceInfo &info : opencl_devices()) {
       devices.push_back(info);
     }
   }
@@ -534,6 +571,7 @@ void Device::free_memory()
   oneapi_devices().free_memory();
   cpu_devices().free_memory();
   metal_devices().free_memory();
+  opencl_devices().free_memory();
 }
 
 unique_ptr<DeviceQueue> Device::gpu_queue_create()

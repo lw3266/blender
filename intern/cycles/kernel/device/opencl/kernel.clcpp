@@ -1,0 +1,47 @@
+/* SPDX-License-Identifier: Apache-2.0
+ * Copyright 2011-2024 Blender Foundation */
+
+/* OpenCL C++ Kernel Wrapper wrapping modern Cycles C++ headers */
+
+#define ccl_gpu
+#define ccl_device inline
+#define ccl_global __global
+#define ccl_local __local
+#define ccl_constant __constant
+
+#include "kernel/device/gpu/kernel.h"
+
+extern "C" {
+
+__kernel void opencl_integrator_init_from_camera(ccl_global KernelData *data,
+                                                  ccl_global void *state,
+                                                  int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    // Calls modern C++ integrator kernel entrypoint
+    integrator_init_from_camera(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_intersect_closest(ccl_global KernelData *data,
+                                                   ccl_global void *state,
+                                                   int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_intersect_closest(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_shade_surface(ccl_global KernelData *data,
+                                               ccl_global void *state,
+                                               int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_shade_surface(data, state, g_id);
+  }
+}
+
+} // extern "C"

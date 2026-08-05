@@ -121,6 +121,14 @@ set(SRC_OPTIX
   optix/util.h
 )
 
+set(SRC_OPENCL
+  opencl/device.h
+  opencl/device_impl.cpp
+  opencl/device_impl.h
+  opencl/queue.cpp
+  opencl/queue.h
+)
+
 set(SRC_HEADERS
   device.h
   denoise.h
@@ -230,6 +238,20 @@ if(WITH_CYCLES_DEVICE_ONEAPI)
   unset(CMAKE_REQUIRED_LIBRARIES)
 endif()
 
+if(WITH_CYCLES_DEVICE_OPENCL)
+  find_package(OpenCL REQUIRED)
+  add_definitions(-DWITH_OPENCL)
+  list(APPEND LIB
+    PRIVATE ${OPENCL_LIBRARIES}
+  )
+  list(APPEND SRC
+    ${SRC_OPENCL}
+  )
+  list(APPEND INC_SYS
+    ${OPENCL_INCLUDE_DIRS}
+  )
+endif()
+
 include_directories(${INC})
 include_directories(SYSTEM ${INC_SYS})
 
@@ -250,4 +272,5 @@ source_group("multi" FILES ${SRC_MULTI})
 source_group("metal" FILES ${SRC_METAL})
 source_group("optix" FILES ${SRC_OPTIX})
 source_group("oneapi" FILES ${SRC_ONEAPI})
+source_group("opencl" FILES ${SRC_OPENCL})
 source_group("common" FILES ${SRC_BASE} ${SRC_HEADERS})
