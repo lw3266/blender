@@ -139,7 +139,7 @@ bool OpenCLDevice::compile_opencl_cpp_program()
   return true;
 }
 
-bool OpenCLDevice::load_kernels(const uint64_t /*kernel_features*/)
+bool OpenCLDevice::load_kernels(const uint /*kernel_features*/)
 {
   if (!compile_opencl_cpp_program()) return false;
 
@@ -209,6 +209,61 @@ void OpenCLDevice::mem_free(device_memory &mem)
 
 void OpenCLDevice::mem_move_to_host(device_memory & /*mem*/)
 {
+}
+
+/* GPUDevice interface implementations */
+
+void OpenCLDevice::get_device_memory_info(size_t &total, size_t &free)
+{
+  cl_ulong mem_size = 0;
+  clGetDeviceInfo(cl_device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(mem_size), &mem_size, NULL);
+  total = (size_t)mem_size;
+  free = (device_mem_in_use < total) ? (total - device_mem_in_use) : 0;
+}
+
+bool OpenCLDevice::alloc_device(void *&device_pointer, const size_t size)
+{
+  cl_int err;
+  cl_mem cl_buf = clCreateBuffer(cl_context_id, CL_MEM_READ_WRITE, size, NULL, &err);
+  if (err != CL_SUCCESS || !cl_buf) {
+    device_pointer = nullptr;
+    return false;
+  }
+  device_pointer = (void *)cl_buf;
+  return true;
+}
+
+void OpenCLDevice::free_device(void *device_pointer)
+{
+  if (device_pointer) {
+    clReleaseMemObject((cl_mem)device_pointer);
+  }
+}
+
+bool OpenCLDevice::shared_alloc(void *&shared_pointer, const size_t size)
+{
+  shared_pointer = host_alloc(MEM_READ_WRITE, size);
+  return (shared_pointer != nullptr);
+}
+
+void OpenCLDevice::shared_free(void *shared_pointer)
+{
+  if (shared_pointer) {
+    host_free(MEM_READ_WRITE, shared_pointer, 0);
+  }
+}
+
+void *OpenCLDevice::shared_to_device_pointer(const void *shared_pointer)
+{
+  return (void *)shared_pointer;
+}
+
+void OpenCLDevice::copy_host_to_device(void *device_pointer, void *host_pointer, const size_t size)
+{
+  cl_mem cl_buf = (cl_mem)device_pointer;
+  clEnqueueWriteBuffer(
+      ((OpenCLDeviceQueue *)gpu_queue_create().get())->cl_queue,
+      cl_buf, CL_TRUE, 0, size, host_pointer, 0, NULL, NULL);
 }
 
 unique_ptr<DeviceQueue> OpenCLDevice::gpu_queue_create()

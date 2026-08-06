@@ -26,7 +26,7 @@ class OpenCLDevice : public GPUDevice {
   ~OpenCLDevice() override;
 
   BVHLayoutMask get_bvh_layout_mask(const uint kernel_features) const override;
-  bool load_kernels(const uint64_t kernel_features) override;
+  bool load_kernels(const uint kernel_features) override;
 
   void const_copy_to(const char *name, void *host, const size_t size) override;
   void mem_alloc(device_memory &mem) override;
@@ -37,6 +37,16 @@ class OpenCLDevice : public GPUDevice {
   void mem_move_to_host(device_memory &mem) override;
 
   unique_ptr<DeviceQueue> gpu_queue_create() override;
+
+ protected:
+  /* GPUDevice pure virtual interface implementations */
+  void get_device_memory_info(size_t &total, size_t &free) override;
+  bool alloc_device(void *&device_pointer, const size_t size) override;
+  void free_device(void *device_pointer) override;
+  bool shared_alloc(void *&shared_pointer, const size_t size) override;
+  void shared_free(void *shared_pointer) override;
+  void *shared_to_device_pointer(const void *shared_pointer) override;
+  void copy_host_to_device(void *device_pointer, void *host_pointer, const size_t size) override;
 
  private:
   bool compile_opencl_cpp_program();
