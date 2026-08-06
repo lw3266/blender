@@ -5,6 +5,7 @@
 
 #  include "device/opencl/queue.h"
 #  include "device/opencl/device_impl.h"
+#  include "util/log.h"
 
 CCL_NAMESPACE_BEGIN
 
@@ -12,12 +13,20 @@ OpenCLDeviceQueue::OpenCLDeviceQueue(OpenCLDevice *device)
     : DeviceQueue(device), opencl_device(device)
 {
   cl_int err;
-  cl_queue = clCreateCommandQueue(opencl_device->cl_context_id, opencl_device->cl_device, 0, &err);
+#if CL_TARGET_OPENCL_VERSION >= 200
+  cl_queue = clCreateCommandQueueWithProperties(
+      opencl_device->cl_context_id, opencl_device->cl_device, NULL, &err);
+#else
+  cl_queue = clCreateCommandQueue(
+      opencl_device->cl_context_id, opencl_device->cl_device, 0, &err);
+#endif
 }
 
 OpenCLDeviceQueue::~OpenCLDeviceQueue()
 {
-  if (cl_queue) clReleaseCommandQueue(cl_queue);
+  if (cl_queue) {
+    clReleaseCommandQueue(cl_queue);
+  }
 }
 
 int OpenCLDeviceQueue::num_concurrent_states(const size_t /*state_size*/) const
@@ -49,18 +58,16 @@ bool OpenCLDeviceQueue::synchronize()
 bool OpenCLDeviceQueue::enqueue(DeviceKernel kernel, int work_size, const DeviceKernelArguments &args)
 {
   cl_kernel cl_kern = opencl_device->kernels[kernel];
-  if (!cl_kern) return false;
+  if (!cl_kern) {
+    return false;
+  }
 
-  /* Bind device kernel arguments dynamically */
-  int arg_idx = 0;
-  for (const auto &arg : args.values) {
-    if (arg.type == DeviceKernelArguments::POINTER) {
-      cl_mem ptr = (cl_mem)arg.pointer;
-      clSetKernelArg(cl_kern, arg_idx++, sizeof(cl_mem), &ptr);
-    }
-    else if (arg.type == DeviceKernelArguments::INT) {
-      int val = arg.int_value;
-      clSetKernelArg(cl_kern, arg_idx++, sizeof(int), &val);
+  /* Bind device kernel arguments dynamically using values and sizes */
+  for (size_t i = 0; i < args.values.size(); i++) {
+    cl_int err = clSetKernelArg(cl_kern, (cl_uint)i, args.sizes[i], args.values[i]);
+    if (err != CL_SUCCESS) {
+      LOG_ERROR << "OpenCL clSetKernelArg failed for argument " << i << " with error " << err;
+      return false;
     }
   }
 
