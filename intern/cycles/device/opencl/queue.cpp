@@ -62,8 +62,8 @@ bool OpenCLDeviceQueue::enqueue(DeviceKernel kernel, int work_size, const Device
     return false;
   }
 
-  /* Bind device kernel arguments dynamically using values and sizes */
-  for (size_t i = 0; i < args.values.size(); i++) {
+  /* Bind device kernel arguments dynamically using values, sizes, and count */
+  for (int i = 0; i < args.count; i++) {
     cl_int err = clSetKernelArg(cl_kern, (cl_uint)i, args.sizes[i], args.values[i]);
     if (err != CL_SUCCESS) {
       LOG_ERROR << "OpenCL clSetKernelArg failed for argument " << i << " with error " << err;
