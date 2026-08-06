@@ -14,9 +14,7 @@
 
 CCL_NAMESPACE_BEGIN
 
-struct DeviceRequestedFeatures;
-
-class OpenCLDevice : public Device {
+class OpenCLDevice : public GPUDevice {
  public:
   cl_platform_id cl_platform;
   cl_device_id cl_device;
@@ -28,7 +26,7 @@ class OpenCLDevice : public Device {
   ~OpenCLDevice() override;
 
   BVHLayoutMask get_bvh_layout_mask(const uint kernel_features) const override;
-  bool load_kernels(const DeviceRequestedFeatures &requested_features) override;
+  bool load_kernels(const uint64_t kernel_features) override;
 
   void const_copy_to(const char *name, void *host, const size_t size) override;
   void mem_alloc(device_memory &mem) override;

@@ -5,7 +5,6 @@
 
 #  include "device/opencl/device_impl.h"
 #  include "device/opencl/queue.h"
-#  include "scene/scene.h"
 #  include "util/log.h"
 #  include "util/path.h"
 #  include "util/string.h"
@@ -66,7 +65,7 @@ unique_ptr<Device> device_opencl_create(const DeviceInfo &info,
 }
 
 OpenCLDevice::OpenCLDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless)
-    : Device(info, stats, profiler, headless), cl_prog(NULL)
+    : GPUDevice(info, stats, profiler, headless), cl_prog(NULL)
 {
   cl_uint num_platforms = 0;
   clGetPlatformIDs(0, NULL, &num_platforms);
@@ -140,7 +139,7 @@ bool OpenCLDevice::compile_opencl_cpp_program()
   return true;
 }
 
-bool OpenCLDevice::load_kernels(const DeviceRequestedFeatures &)
+bool OpenCLDevice::load_kernels(const uint64_t /*kernel_features*/)
 {
   if (!compile_opencl_cpp_program()) return false;
 

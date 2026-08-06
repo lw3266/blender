@@ -55,16 +55,16 @@ jobs:
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
           sudo update-alternatives --set gcc /usr/bin/gcc-14
 
-      # Step 3: Cache Precompiled SVN Libraries
+      # Step 3: Cache Precompiled SVN Libraries (Ensure absolute runner path)
       - name: Cache Blender SVN Libraries
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/../lib
+          path: /home/runner/work/${{ github.event.repository.name }}/lib
           key: blender-lib-linux-${{ hashFiles('build_files/cmake/platform/platform_unix.cmake') }}
           restore-keys: |
             blender-lib-linux-
 
-      # NEW STEP: Cache Build Artifacts / Modules via ccache
+      # Step 4: Cache Compiler Objects (ccache)
       - name: Cache Compiler Objects (ccache)
         uses: actions/cache@v4
         with:
@@ -74,30 +74,37 @@ jobs:
             blender-ccache-linux-${{ github.ref_name }}-
             blender-ccache-linux-
 
-      # Step 4: Download Precompiled Dependencies
+      # Step 5: Download Precompiled Dependencies
       - name: Download Precompiled Libraries
         run: |
           make update SVN_FLAGS="--threads 4"
 
-      # Step 5: Configure and Build Blender (OPTIMIZED: Configured with ccache)
+      # Step 6: Configure and Build Blender with Masqueraded ccache
       - name: Build Blender with OpenCL
         run: |
-          # Configure ccache performance variables
+          # Force ccache to masquerade as the system compiler by prepending it to PATH
+          export PATH="/usr/lib/ccache:$PATH"
+          
+          # Crucial ccache tuning for CI environments
+          export CCACHE_BASEDIR="${{ github.workspace }}"
           export CCACHE_COMPRESS=true
-          export CCACHE_MAXSIZE=2G
+          export CCACHE_MAXSIZE=5G
           
-          # Pass WITH_COMPILER_CCACHE to Blender's underlying CMake setup
-          make release -j2 BUILD_CMAKE_ARGS="-DWITH_CYCLES_DEVICE_OPENCL=ON -DWITH_COMPILER_CCACHE=ON"
+          # Zero out previous statistics so the log shows only this run's data
+          ccache -z
           
-          # Print cache statistics at the end of the build to monitor hit rate
+          # Regular build execution
+          make release -j2 BUILD_CMAKE_ARGS="-DWITH_CYCLES_DEVICE_OPENCL=ON"
+          
+          # Print cache statistics at the end to verify hits/misses
           ccache -s
 
-      # Step 6: Package Binaries
+      # Step 7: Package Binaries
       - name: Compress Compiled Artifacts
         run: |
-          tar -czvf blender-linux-opencl.tar.gz -C ${{ github.workspace }}/../build_linux/bin .
+          tar -czvf blender-linux-opencl.tar.gz -C /home/runner/work/${{ github.event.repository.name }}/build_linux/bin .
 
-      # Step 7: Upload Build Artifact
+      # Step 8: Upload Build Artifact
       - name: Upload Blender Binary Artifact
         uses: actions/upload-artifact@v4
         with:
