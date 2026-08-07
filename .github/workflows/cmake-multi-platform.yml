@@ -55,11 +55,11 @@ jobs:
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
           sudo update-alternatives --set gcc /usr/bin/gcc-14
 
-      # Step 3: Cache Precompiled SVN Libraries (Ensure absolute runner path)
+      # Step 3: Cache Precompiled SVN Libraries
       - name: Cache Blender SVN Libraries
         uses: actions/cache@v4
         with:
-          path: /home/runner/work/${{ github.event.repository.name }}/lib
+          path: ${{ github.workspace }}/../lib
           key: blender-lib-linux-${{ hashFiles('build_files/cmake/platform/platform_unix.cmake') }}
           restore-keys: |
             blender-lib-linux-
@@ -99,10 +99,10 @@ jobs:
           # Print cache statistics at the end to verify hits/misses
           ccache -s
 
-      # Step 7: Package Binaries
+      # Step 7: Package Binaries (FIXED DIRECTORY PATH)
       - name: Compress Compiled Artifacts
         run: |
-          tar -czvf blender-linux-opencl.tar.gz -C /home/runner/work/${{ github.event.repository.name }}/build_linux/bin .
+          tar -czvf blender-linux-opencl.tar.gz -C ${{ github.workspace }}/../build_linux_release/bin .
 
       # Step 8: Upload Build Artifact
       - name: Upload Blender Binary Artifact
