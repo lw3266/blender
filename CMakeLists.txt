@@ -720,6 +720,8 @@ oneAPI targets to build AOT binaries for"
   mark_as_advanced(CYCLES_ONEAPI_SYCL_TARGETS)
 endif()
 
+option(WITH_CYCLES_DEVICE_OPENCL "Enable Cycles OpenCL compute support" OFF)
+
 # Draw Manager
 option(WITH_DRAW_DEBUG "Add extra debug capabilities to Draw Manager" OFF)
 mark_as_advanced(WITH_DRAW_DEBUG)
@@ -2633,7 +2635,8 @@ if(FIRST_RUN)
   info_cfg_option(WITH_UI_TESTS_VULKAN)
   info_cfg_option(WITH_GPU_RENDER_TESTS_VULKAN)
   info_cfg_option(WITH_LINUX_OFFICIAL_RELEASE_TESTS)
-
+  info_cfg_option(WITH_CYCLES_DEVICE_OPENCL)
+  
   info_cfg_text("")
 
   message(STATUS "${_config_msg}")

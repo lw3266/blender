@@ -242,13 +242,13 @@ if(WITH_CYCLES_DEVICE_OPENCL)
   find_package(OpenCL REQUIRED)
   add_definitions(-DWITH_OPENCL)
   list(APPEND LIB
-    PRIVATE ${OPENCL_LIBRARIES}
+    PRIVATE OpenCL::OpenCL
   )
   list(APPEND SRC
     ${SRC_OPENCL}
   )
   list(APPEND INC_SYS
-    ${OPENCL_INCLUDE_DIRS}
+    ${OpenCL_INCLUDE_DIRS}
   )
 endif()
 
