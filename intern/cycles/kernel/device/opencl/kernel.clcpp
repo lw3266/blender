@@ -1,7 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0
- * Copyright 2011-2024 Blender Foundation */
-
-/* OpenCL C++ Kernel Wrapper wrapping modern Cycles C++ headers */
+ * Copyright 2011-2026 Blender Foundation */
 
 #define ccl_gpu
 #define ccl_device inline
@@ -13,17 +11,28 @@
 
 extern "C" {
 
+/* Integrator Initializers */
 __kernel void opencl_integrator_init_from_camera(ccl_global KernelData *data,
                                                   ccl_global void *state,
                                                   int work_size)
 {
   int g_id = get_global_id(0);
   if (g_id < work_size) {
-    // Calls modern C++ integrator kernel entrypoint
     integrator_init_from_camera(data, state, g_id);
   }
 }
 
+__kernel void opencl_integrator_init_from_bake(ccl_global KernelData *data,
+                                                ccl_global void *state,
+                                                int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_init_from_bake(data, state, g_id);
+  }
+}
+
+/* Intersections */
 __kernel void opencl_integrator_intersect_closest(ccl_global KernelData *data,
                                                    ccl_global void *state,
                                                    int work_size)
@@ -34,6 +43,27 @@ __kernel void opencl_integrator_intersect_closest(ccl_global KernelData *data,
   }
 }
 
+__kernel void opencl_integrator_intersect_shadow(ccl_global KernelData *data,
+                                                  ccl_global void *state,
+                                                  int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_intersect_shadow(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_intersect_subsurface(ccl_global KernelData *data,
+                                                      ccl_global void *state,
+                                                      int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_intersect_subsurface(data, state, g_id);
+  }
+}
+
+/* Shading */
 __kernel void opencl_integrator_shade_surface(ccl_global KernelData *data,
                                                ccl_global void *state,
                                                int work_size)
@@ -41,6 +71,46 @@ __kernel void opencl_integrator_shade_surface(ccl_global KernelData *data,
   int g_id = get_global_id(0);
   if (g_id < work_size) {
     integrator_shade_surface(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_shade_light(ccl_global KernelData *data,
+                                             ccl_global void *state,
+                                             int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_shade_light(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_shade_background(ccl_global KernelData *data,
+                                                  ccl_global void *state,
+                                                  int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_shade_background(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_shade_volume(ccl_global KernelData *data,
+                                              ccl_global void *state,
+                                              int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_shade_volume(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_shade_shadow(ccl_global KernelData *data,
+                                              ccl_global void *state,
+                                              int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_shade_shadow(data, state, g_id);
   }
 }
 
