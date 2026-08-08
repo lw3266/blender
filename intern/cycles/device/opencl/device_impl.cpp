@@ -290,6 +290,17 @@ void OpenCLDevice::copy_host_to_device(void *device_pointer, void *host_pointer,
       cl_buf, CL_TRUE, 0, size, host_pointer, 0, NULL, NULL);
 }
 
+void OpenCLDevice::const_copy_to(const char *name, void *host, size_t size)
+{
+  /* If you have a specific buffer or constant memory allocation logic
+   * for OpenCL constants, handle it here.
+   *
+   * For now, a stub/pass-through implementation allows the project to link: */
+  (void)name;
+  (void)host;
+  (void)size;
+}
+
 unique_ptr<DeviceQueue> OpenCLDevice::gpu_queue_create()
 {
   return make_unique<OpenCLDeviceQueue>(this);
