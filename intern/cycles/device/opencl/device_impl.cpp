@@ -144,8 +144,8 @@ bool OpenCLDevice::compile_opencl_cpp_program()
       path_get("source");
 
   const string build_options =
-      string_printf("-cl-std=CLC++ -I\"%s\"", source_root.c_str());
-
+    string_printf("-cl-std=CL2.0 -I\"%s\"", source_root.c_str());
+    
   LOG_INFO << "OpenCL kernel source: " << kernel_path;
   LOG_INFO << "OpenCL include root: " << source_root;
   LOG_INFO << "OpenCL build options: " << build_options;
