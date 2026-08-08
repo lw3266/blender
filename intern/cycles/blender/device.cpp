@@ -18,6 +18,7 @@ enum ComputeDevice {
   COMPUTE_DEVICE_HIP = 4,
   COMPUTE_DEVICE_METAL = 5,
   COMPUTE_DEVICE_ONEAPI = 6,
+  COMPUTE_DEVICE_OPENCL = 7,
 
   COMPUTE_DEVICE_NUM
 };
@@ -128,6 +129,9 @@ DeviceInfo blender_device_info(blender::UserDef &b_preferences,
     }
     else if (compute_device == COMPUTE_DEVICE_ONEAPI) {
       mask |= DEVICE_MASK_ONEAPI;
+    }
+    else if (compute_device == COMPUTE_DEVICE_OPENCL) {
+      mask |= DEVICE_MASK_OPENCL;
     }
     const vector<DeviceInfo> devices = Device::available_devices(mask);
 

@@ -175,7 +175,8 @@ enum_device_type = (
     ('OPTIX', "OptiX", "OptiX", 3),
     ('HIP', "HIP", "HIP", 4),
     ('METAL', "Metal", "Metal", 5),
-    ('ONEAPI', "oneAPI", "oneAPI", 6)
+    ('ONEAPI', "oneAPI", "oneAPI", 6),
+    ('OPENCL', "openCL", "openCL", 7),
 )
 
 enum_texture_limit = (
@@ -1639,7 +1640,27 @@ class CyclesPreferences(bpy.types.AddonPreferences):
 
     def get_device_types(self, context):
         import _cycles
-        has_cuda, has_optix, has_hip, has_metal, has_oneapi, has_hiprt = _cycles.get_device_types()
+        raw_types = _cycles.get_device_types()
+
+        has_cuda = raw_types[0] if len(raw_types) > 0 else False
+        has_optix = raw_types[1] if len(raw_types) > 1 else False
+        has_hip = raw_types[2] if len(raw_types) > 2 else False
+        has_metal = raw_types[3] if len(raw_types) > 3 else False
+        has_oneapi = raw_types[4] if len(raw_types) > 4 else False
+
+        has_opencl = False
+        if len(raw_types) >= 7:
+            has_opencl = raw_types[6]
+        elif len(raw_types) == 3 and isinstance(raw_types[2], bool):
+            has_opencl = raw_types[2]
+
+        if not has_opencl:
+            try:
+                opencl_devices = _cycles.available_devices('OPENCL')
+                if opencl_devices:
+                    has_opencl = True
+            except Exception:
+                pass
 
         list = [('NONE', "None", n_("Do not use compute device"), 0)]
         if has_cuda:
@@ -1652,6 +1673,8 @@ class CyclesPreferences(bpy.types.AddonPreferences):
             list.append(('METAL', "Metal", n_("Use Metal for GPU acceleration"), 5))
         if has_oneapi:
             list.append(('ONEAPI', "oneAPI", n_("Use oneAPI for GPU acceleration"), 6))
+        if has_opencl:
+            list.append(('OPENCL', "OpenCL", n_("Use OpenCL for GPU acceleration"), 7))
 
         return list
 
@@ -1726,7 +1749,7 @@ class CyclesPreferences(bpy.types.AddonPreferences):
 
     def update_device_entries(self, device_list):
         for device in device_list:
-            if not device[1] in {'CUDA', 'OPTIX', 'CPU', 'HIP', 'METAL', 'ONEAPI'}:
+            if not device[1] in {'CUDA', 'OPTIX', 'CPU', 'HIP', 'METAL', 'ONEAPI', 'OPENCL'}:
                 continue
             # Try to find existing Device entry
             entry = self.find_existing_device_entry(device)
@@ -1769,7 +1792,7 @@ class CyclesPreferences(bpy.types.AddonPreferences):
     def refresh_devices(self):
         # Ensure `self.devices` is not re-allocated when the second call to
         # get_devices_for_type is made, freeing items from the first list.
-        for device_type in ('CUDA', 'OPTIX', 'HIP', 'METAL', 'ONEAPI'):
+        for device_type in ('CUDA', 'OPTIX', 'HIP', 'METAL', 'ONEAPI', 'OPENCL'):
             # Query the device list to trigger all required updates.
             # Note that even though the device list is unused,
             # the function has side-effects with internal state updates.
@@ -1929,14 +1952,6 @@ class CyclesPreferences(bpy.types.AddonPreferences):
             elif device_type == 'ONEAPI':
                 import sys
                 if sys.platform.startswith("win"):
-                    # NOTE(@sirgienko)
-                    # We need NEO driver version 35716 or higher, see oneapi/device_impl.cpp for more details.
-                    # The minimal version for Intel® Arc™ GPUs is driver 101.8331
-                    # The minimal version for Intel® Arc™ Pro GPUs is driver 101.8306
-                    # The previous driver version for Intel® Arc™ GPUs, before 101.8331, was driver 101.8250
-                    # and no intermediate versions were publicly available between 8250 and 8331 for Intel® Arc™ GPUs.
-                    # As a result, we can safely recommend users to use driver version 8306 or higher, without needing
-                    # to distinguish between Intel® Arc™ and Intel® Arc™ Pro users.
                     col.label(
                         text=self._format_device_name(
                             rpt_("Requires Intel(R) Arc(TM) GPUs or newer Intel(R) Graphics")),
@@ -1963,6 +1978,9 @@ class CyclesPreferences(bpy.types.AddonPreferences):
             elif device_type == 'METAL':
                 mac_version = "12.2"
                 col.label(text=rpt_("Requires Apple Silicon with macOS %s or newer") % mac_version,
+                          icon='BLANK1', translate=False)
+            elif device_type == 'OPENCL':
+                col.label(text=rpt_("Requires OpenCL 2.0 or higher compatible GPU"),
                           icon='BLANK1', translate=False)
             return
 
