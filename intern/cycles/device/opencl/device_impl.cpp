@@ -5,11 +5,13 @@
 
 #  include "device/opencl/device_impl.h"
 #  include "device/opencl/queue.h"
+#include "device/kernel.h"   // for device_kernel_as_string()
 #  include "util/log.h"
 #  include "util/path.h"
 #  include "util/string.h"
 
 #  include <vector>
+#include <unordered_set>
 
 CCL_NAMESPACE_BEGIN
 
@@ -113,7 +115,7 @@ BVHLayoutMask OpenCLDevice::get_bvh_layout_mask(const uint /*kernel_features*/) 
 
 bool OpenCLDevice::compile_opencl_cpp_program()
 {
-  string kernel_path = path_get("scripts/addons/cycles/kernel/device/opencl/kernel.clcpp");
+  string kernel_path = path_get("scripts/addons_core/cycles/source/kernel/device/opencl/kernel.clcpp");
   string source_code;
   if (!path_read_text(kernel_path, source_code)) {
     return false;
@@ -141,27 +143,49 @@ bool OpenCLDevice::compile_opencl_cpp_program()
 
 bool OpenCLDevice::load_kernels(const uint /*kernel_features*/)
 {
-  if (!compile_opencl_cpp_program()) return false;
+  if (!compile_opencl_cpp_program()) {
+    return false;
+  }
 
-  static const char *kernel_names[DEVICE_KERNEL_NUM] = {
-      "opencl_integrator_init_from_camera",
-      "opencl_integrator_intersect_closest",
-      "opencl_integrator_shade_surface",
-      "opencl_integrator_shade_volume",
-      "opencl_integrator_shade_shadow",
+  /* Kernels currently implemented in kernel.clcpp. Anything not listed here has
+   * no OpenCL entry point yet; its slot in kernels[] stays null and
+   * OpenCLDeviceQueue::enqueue() will fail for it explicitly.
+   * NOTE: "opencl_integrator_shade_light" in kernel.clcpp predates the NEE/
+   * forward split (DEVICE_KERNEL_INTEGRATOR_SHADE_LIGHT_NEE/_FORWARD) and has
+   * no 1:1 match under the current naming convention, so it's intentionally
+   * left out here rather than silently bound to the wrong kernel. */
+  static const std::unordered_set<int> supported_kernels = {
+      DEVICE_KERNEL_INTEGRATOR_INIT_FROM_CAMERA,
+      DEVICE_KERNEL_INTEGRATOR_INIT_FROM_BAKE,
+      DEVICE_KERNEL_INTEGRATOR_INTERSECT_CLOSEST,
+      DEVICE_KERNEL_INTEGRATOR_INTERSECT_SHADOW,
+      DEVICE_KERNEL_INTEGRATOR_INTERSECT_SUBSURFACE,
+      DEVICE_KERNEL_INTEGRATOR_SHADE_SURFACE,
+      DEVICE_KERNEL_INTEGRATOR_SHADE_BACKGROUND,
+      DEVICE_KERNEL_INTEGRATOR_SHADE_VOLUME,
+      DEVICE_KERNEL_INTEGRATOR_SHADE_SHADOW,
   };
 
+  bool all_ok = true;
+
   for (int i = 0; i < DEVICE_KERNEL_NUM; i++) {
-    if (kernel_names[i]) {
-      cl_int err;
-      kernels[i] = clCreateKernel(cl_prog, kernel_names[i], &err);
+    const DeviceKernel kernel = (DeviceKernel)i;
+    if (!supported_kernels.count(i)) {
+      continue;
+    }
+
+    const std::string function_name = std::string("opencl_") + device_kernel_as_string(kernel);
+
+    cl_int err = CL_SUCCESS;
+    kernels[i] = clCreateKernel(cl_prog, function_name.c_str(), &err);
+
+    if (err != CL_SUCCESS || !kernels[i]) {
+      LOG_ERROR << "Unable to create OpenCL kernel \"" << function_name << "\", error " << err;
+      all_ok = false;
     }
   }
-  return true;
-}
 
-void OpenCLDevice::const_copy_to(const char * /*name*/, void * /*host*/, const size_t /*size*/)
-{
+  return all_ok;
 }
 
 void OpenCLDevice::mem_alloc(device_memory &mem)

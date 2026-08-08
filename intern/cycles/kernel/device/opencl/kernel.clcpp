@@ -11,7 +11,20 @@
 
 extern "C" {
 
-/* Integrator Initializers */
+/* =========================================================================
+ * Integrator Initialization & Reset
+ * ========================================================================= */
+
+__kernel void opencl_integrator_reset(ccl_global KernelData *data,
+                                       ccl_global void *state,
+                                       int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_reset(data, state, g_id);
+  }
+}
+
 __kernel void opencl_integrator_init_from_camera(ccl_global KernelData *data,
                                                   ccl_global void *state,
                                                   int work_size)
@@ -32,7 +45,10 @@ __kernel void opencl_integrator_init_from_bake(ccl_global KernelData *data,
   }
 }
 
-/* Intersections */
+/* =========================================================================
+ * Ray Intersections
+ * ========================================================================= */
+
 __kernel void opencl_integrator_intersect_closest(ccl_global KernelData *data,
                                                    ccl_global void *state,
                                                    int work_size)
@@ -44,8 +60,8 @@ __kernel void opencl_integrator_intersect_closest(ccl_global KernelData *data,
 }
 
 __kernel void opencl_integrator_intersect_shadow(ccl_global KernelData *data,
-                                                  ccl_global void *state,
-                                                  int work_size)
+                                                   ccl_global void *state,
+                                                   int work_size)
 {
   int g_id = get_global_id(0);
   if (g_id < work_size) {
@@ -63,7 +79,10 @@ __kernel void opencl_integrator_intersect_subsurface(ccl_global KernelData *data
   }
 }
 
-/* Shading */
+/* =========================================================================
+ * Shading
+ * ========================================================================= */
+
 __kernel void opencl_integrator_shade_surface(ccl_global KernelData *data,
                                                ccl_global void *state,
                                                int work_size)
@@ -111,6 +130,190 @@ __kernel void opencl_integrator_shade_shadow(ccl_global KernelData *data,
   int g_id = get_global_id(0);
   if (g_id < work_size) {
     integrator_shade_shadow(data, state, g_id);
+  }
+}
+
+/* =========================================================================
+ * Path Array Management & Sorting
+ * ========================================================================= */
+
+__kernel void opencl_integrator_queued_paths_array(ccl_global KernelData *data,
+                                                    ccl_global void *state,
+                                                    int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_queued_paths_array(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_active_paths_array(ccl_global KernelData *data,
+                                                    ccl_global void *state,
+                                                    int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_active_paths_array(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_terminated_paths_array(ccl_global KernelData *data,
+                                                        ccl_global void *state,
+                                                        int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_terminated_paths_array(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_sorted_paths_array(ccl_global KernelData *data,
+                                                    ccl_global void *state,
+                                                    int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_sorted_paths_array(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_compact_paths_array(ccl_global KernelData *data,
+                                                     ccl_global void *state,
+                                                     int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_compact_paths_array(data, state, g_id);
+  }
+}
+
+__kernel void opencl_integrator_compact_states_array(ccl_global KernelData *data,
+                                                      ccl_global void *state,
+                                                      int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    integrator_compact_states_array(data, state, g_id);
+  }
+}
+
+/* =========================================================================
+ * Prefix Sum (Scan Parallel Primitive)
+ * ========================================================================= */
+
+__kernel void opencl_prefix_sum(ccl_global KernelData *data,
+                                ccl_global int *counter,
+                                ccl_global int *prefix_sum_array,
+                                int num_states)
+{
+  int g_id = get_global_id(0);
+  if (g_id < num_states) {
+    prefix_sum(data, counter, prefix_sum_array, g_id);
+  }
+}
+
+/* =========================================================================
+ * Adaptive Sampling & Post-Processing
+ * ========================================================================= */
+
+__kernel void opencl_adaptive_sampling_convergence_check(ccl_global KernelData *data,
+                                                           ccl_global float *render_buffer,
+                                                           ccl_global int *converged,
+                                                           int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    adaptive_sampling_convergence_check(data, render_buffer, converged, g_id);
+  }
+}
+
+__kernel void opencl_adaptive_sampling_filter_x(ccl_global KernelData *data,
+                                                  ccl_global float *render_buffer,
+                                                  int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    adaptive_sampling_filter_x(data, render_buffer, g_id);
+  }
+}
+
+__kernel void opencl_adaptive_sampling_filter_y(ccl_global KernelData *data,
+                                                  ccl_global float *render_buffer,
+                                                  int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    adaptive_sampling_filter_y(data, render_buffer, g_id);
+  }
+}
+
+__kernel void opencl_cryptomatte_postprocess(ccl_global KernelData *data,
+                                             ccl_global float *render_buffer,
+                                             int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    cryptomatte_postprocess(data, render_buffer, g_id);
+  }
+}
+
+/* =========================================================================
+ * Film Conversion Kernels
+ * ========================================================================= */
+
+__kernel void opencl_film_convert_byte_rgba(ccl_global KernelData *data,
+                                             ccl_global uchar4 *destination,
+                                             ccl_global float *buffer,
+                                             int rgba_offset,
+                                             int d_stride,
+                                             int b_stride,
+                                             int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    film_convert_byte_rgba(data, destination, buffer, rgba_offset, d_stride, b_stride, g_id);
+  }
+}
+
+__kernel void opencl_film_convert_half_rgba(ccl_global KernelData *data,
+                                             ccl_global void *destination,
+                                             ccl_global float *buffer,
+                                             int rgba_offset,
+                                             int d_stride,
+                                             int b_stride,
+                                             int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    film_convert_half_rgba(data, destination, buffer, rgba_offset, d_stride, b_stride, g_id);
+  }
+}
+
+__kernel void opencl_film_convert_float_rgba(ccl_global KernelData *data,
+                                              ccl_global float4 *destination,
+                                              ccl_global float *buffer,
+                                              int rgba_offset,
+                                              int d_stride,
+                                              int b_stride,
+                                              int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    film_convert_float_rgba(data, destination, buffer, rgba_offset, d_stride, b_stride, g_id);
+  }
+}
+
+__kernel void opencl_film_convert_float_rgb(ccl_global KernelData *data,
+                                             ccl_global float4 *destination,
+                                             ccl_global float *buffer,
+                                             int rgba_offset,
+                                             int d_stride,
+                                             int b_stride,
+                                             int work_size)
+{
+  int g_id = get_global_id(0);
+  if (g_id < work_size) {
+    film_convert_float_rgb(data, destination, buffer, rgba_offset, d_stride, b_stride, g_id);
   }
 }
 
