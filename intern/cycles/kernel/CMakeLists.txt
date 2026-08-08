@@ -426,6 +426,7 @@ add_subdirectory(device/hiprt)
 add_subdirectory(device/metal)
 add_subdirectory(device/oneapi)
 add_subdirectory(device/optix)
+add_subdirectory(device/opencl)
 
 target_link_libraries(cycles_kernel
   INTERFACE cycles_kernel_cpu
@@ -450,18 +451,6 @@ if(NOT WITH_CYCLES_PARALLEL_DEVICE_KERNEL_BUILD)
   cycles_add_gpu_kernel_dependencies(cycles_kernel_hiprt)
   cycles_add_gpu_kernel_dependencies(cycles_kernel_oneapi)
   cycles_add_gpu_kernel_dependencies(cycles_kernel_cpu)
-endif()
-
-if(WITH_CYCLES_DEVICE_OPENCL)
-  set(OPENCL_KERNEL_DST "${CYCLES_INSTALL_PATH}/scripts/addons/cycles/kernel/device/opencl/kernel.clcpp")
+  cycles_add_gpu_kernel_dependencies(cycles_kernel_opencl)
   
-  add_custom_command(
-    OUTPUT ${OPENCL_KERNEL_DST}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/device/opencl/kernel.clcpp"
-            "${OPENCL_KERNEL_DST}"
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/device/opencl/kernel.clcpp"
-  )
-  
-  list(APPEND CYCLES_KERNEL_FILES ${OPENCL_KERNEL_DST})
 endif()

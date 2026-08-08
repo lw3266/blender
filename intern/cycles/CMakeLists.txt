@@ -281,7 +281,17 @@ if(WITH_CYCLES_DEVICE_ONEAPI)
 endif()
 
 if(WITH_CYCLES_DEVICE_OPENCL)
-  add_definitions(-DWITH_OPENCL)
+  set(OPENCL_KERNEL_DST "${CYCLES_INSTALL_PATH}/scripts/addons/cycles/kernel/device/opencl/kernel.clcpp")
+  
+  add_custom_command(
+    OUTPUT ${OPENCL_KERNEL_DST}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/device/opencl/kernel.clcpp"
+            "${OPENCL_KERNEL_DST}"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/device/opencl/kernel.clcpp"
+  )
+  
+  list(APPEND CYCLES_KERNEL_FILES ${OPENCL_KERNEL_DST})
 endif()
 
 if(WITH_CYCLES_EMBREE)
