@@ -20,7 +20,7 @@ set(SRC_OPENCL_KERNEL_FILES
 delayed_install(
   ${CMAKE_CURRENT_SOURCE_DIR}
   "${SRC_OPENCL_KERNEL_FILES}"
-  ${CYCLES_INSTALL_PATH}/scripts/addons/cycles/kernel/device/opencl
+  ${CYCLES_INSTALL_PATH}/source/kernel/device/opencl
 )
 
 # -----------------------------------------------------------------------------

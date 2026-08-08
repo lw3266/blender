@@ -115,76 +115,134 @@ BVHLayoutMask OpenCLDevice::get_bvh_layout_mask(const uint /*kernel_features*/) 
 
 bool OpenCLDevice::compile_opencl_cpp_program()
 {
-  string kernel_path = path_get("scripts/addons_core/cycles/source/kernel/device/opencl/kernel.clcpp");
+  const string kernel_path =
+      path_get("scripts/addons_core/cycles/source/kernel/device/opencl/kernel.clcpp");
+
   string source_code;
   if (!path_read_text(kernel_path, source_code)) {
+    LOG_ERROR << "Unable to read OpenCL kernel source: " << kernel_path;
     return false;
   }
+
   const char *src = source_code.c_str();
 
-  cl_int err;
-  cl_prog = clCreateProgramWithSource(cl_context_id, 1, &src, NULL, &err);
-  if (err != CL_SUCCESS) return false;
+  cl_int err = CL_SUCCESS;
+  cl_prog = clCreateProgramWithSource(cl_context_id, 1, &src, nullptr, &err);
 
-  /* Use Clang OpenCL C++ / SPIR-V flags */
-  const char *build_options = "-cl-std=CLC++ -I";
-  err = clBuildProgram(cl_prog, 1, &cl_device, build_options, NULL, NULL);
-
-  if (err != CL_SUCCESS) {
-    size_t log_size;
-    clGetProgramBuildInfo(cl_prog, cl_device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-    vector<char> log(log_size);
-    clGetProgramBuildInfo(cl_prog, cl_device, CL_PROGRAM_BUILD_LOG, log_size, log.data(), NULL);
-    LOG_ERROR << "OpenCL C++ Compilation Error:\n" << log.data();
+  if (err != CL_SUCCESS || !cl_prog) {
+    LOG_ERROR << "clCreateProgramWithSource() failed: " << err;
     return false;
   }
+
+  /* kernel.clcpp includes:
+   *
+   *   kernel/device/gpu/kernel.h
+   *
+   * so the include root must be the Cycles source directory.
+   */
+  const string source_root =
+      path_get("scripts/addons_core/cycles/source");
+
+  const string build_options =
+      string_printf("-cl-std=CLC++ -I\"%s\"", source_root.c_str());
+
+  LOG_INFO << "OpenCL kernel source: " << kernel_path;
+  LOG_INFO << "OpenCL include root: " << source_root;
+  LOG_INFO << "OpenCL build options: " << build_options;
+
+  err = clBuildProgram(
+      cl_prog,
+      1,
+      &cl_device,
+      build_options.c_str(),
+      nullptr,
+      nullptr);
+
+  if (err != CL_SUCCESS) {
+    size_t log_size = 0;
+    clGetProgramBuildInfo(
+        cl_prog,
+        cl_device,
+        CL_PROGRAM_BUILD_LOG,
+        0,
+        nullptr,
+        &log_size);
+
+    vector<char> log(log_size + 1, '\0');
+
+    clGetProgramBuildInfo(
+        cl_prog,
+        cl_device,
+        CL_PROGRAM_BUILD_LOG,
+        log_size,
+        log.data(),
+        nullptr);
+
+    LOG_ERROR << "OpenCL C++ Compilation Error:\n" << log.data();
+
+    return false;
+  }
+
+  LOG_INFO << "OpenCL Cycles kernel compiled successfully.";
+
   return true;
 }
 
 bool OpenCLDevice::load_kernels(const uint /*kernel_features*/)
 {
   if (!compile_opencl_cpp_program()) {
+    LOG_ERROR << "Failed to compile OpenCL Cycles program.";
     return false;
   }
-
-  /* Kernels currently implemented in kernel.clcpp. Anything not listed here has
-   * no OpenCL entry point yet; its slot in kernels[] stays null and
-   * OpenCLDeviceQueue::enqueue() will fail for it explicitly.
-   * NOTE: "opencl_integrator_shade_light" in kernel.clcpp predates the NEE/
-   * forward split (DEVICE_KERNEL_INTEGRATOR_SHADE_LIGHT_NEE/_FORWARD) and has
-   * no 1:1 match under the current naming convention, so it's intentionally
-   * left out here rather than silently bound to the wrong kernel. */
-  static const std::unordered_set<int> supported_kernels = {
-      DEVICE_KERNEL_INTEGRATOR_INIT_FROM_CAMERA,
-      DEVICE_KERNEL_INTEGRATOR_INIT_FROM_BAKE,
-      DEVICE_KERNEL_INTEGRATOR_INTERSECT_CLOSEST,
-      DEVICE_KERNEL_INTEGRATOR_INTERSECT_SHADOW,
-      DEVICE_KERNEL_INTEGRATOR_INTERSECT_SUBSURFACE,
-      DEVICE_KERNEL_INTEGRATOR_SHADE_SURFACE,
-      DEVICE_KERNEL_INTEGRATOR_SHADE_BACKGROUND,
-      DEVICE_KERNEL_INTEGRATOR_SHADE_VOLUME,
-      DEVICE_KERNEL_INTEGRATOR_SHADE_SHADOW,
-  };
 
   bool all_ok = true;
 
   for (int i = 0; i < DEVICE_KERNEL_NUM; i++) {
     const DeviceKernel kernel = (DeviceKernel)i;
-    if (!supported_kernels.count(i)) {
+
+    const std::string function_name =
+        std::string("opencl_") + device_kernel_as_string(kernel);
+
+    cl_int err = CL_SUCCESS;
+
+    kernels[i] = clCreateKernel(
+        cl_prog,
+        function_name.c_str(),
+        &err);
+
+    if (err != CL_SUCCESS || !kernels[i]) {
+      LOG_INFO << "OpenCL kernel not available: "
+               << function_name
+               << " (DeviceKernel " << i
+               << ", error " << err << ")";
+
       continue;
     }
 
-    const std::string function_name = std::string("opencl_") + device_kernel_as_string(kernel);
-
-    cl_int err = CL_SUCCESS;
-    kernels[i] = clCreateKernel(cl_prog, function_name.c_str(), &err);
-
-    if (err != CL_SUCCESS || !kernels[i]) {
-      LOG_ERROR << "Unable to create OpenCL kernel \"" << function_name << "\", error " << err;
-      all_ok = false;
-    }
+    LOG_INFO << "OpenCL kernel loaded: " << function_name;
   }
 
+  /*
+   * For the first bring-up, don't fail the entire device just because
+   * every DeviceKernel doesn't have an OpenCL implementation yet.
+   *
+   * Queue execution should reject an unsupported kernel explicitly.
+   */
+
+  cl_int err = CL_SUCCESS;
+
+  cl_kernel test_kernel =
+      clCreateKernel(cl_prog, "opencl_test", &err);
+
+  if (err != CL_SUCCESS || !test_kernel) {
+    LOG_ERROR << "OpenCL test kernel creation failed: " << err;
+    return false;
+  }
+
+  LOG_INFO << "OpenCL test kernel created successfully.";
+
+  clReleaseKernel(test_kernel);
+  
   return all_ok;
 }
 
