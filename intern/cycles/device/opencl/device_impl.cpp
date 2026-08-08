@@ -116,7 +116,7 @@ BVHLayoutMask OpenCLDevice::get_bvh_layout_mask(const uint /*kernel_features*/) 
 bool OpenCLDevice::compile_opencl_cpp_program()
 {
   const string kernel_path =
-      path_get("scripts/addons_core/cycles/source/kernel/device/opencl/kernel.clcpp");
+    path_get("source/kernel/device/opencl/kernel.clcpp");
 
   string source_code;
   if (!path_read_text(kernel_path, source_code)) {
@@ -141,7 +141,7 @@ bool OpenCLDevice::compile_opencl_cpp_program()
    * so the include root must be the Cycles source directory.
    */
   const string source_root =
-      path_get("scripts/addons_core/cycles/source");
+      path_get("source");
 
   const string build_options =
       string_printf("-cl-std=CLC++ -I\"%s\"", source_root.c_str());
@@ -242,7 +242,7 @@ bool OpenCLDevice::load_kernels(const uint /*kernel_features*/)
   LOG_INFO << "OpenCL test kernel created successfully.";
 
   clReleaseKernel(test_kernel);
-  
+
   return all_ok;
 }
 
