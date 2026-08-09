@@ -147,7 +147,7 @@ bool OpenCLDevice::compile_opencl_cpp_program()
     path_get("intern");
 
   const string build_options =
-    string_printf("-cl-std=CL2.0 -H -I\"%s\" -I\"%s\"",
+    string_printf("-cl-std=CL2.0 -I\"%s\" -I\"%s\"",
                   source_root.c_str(),
                   intern_root.c_str());
     
