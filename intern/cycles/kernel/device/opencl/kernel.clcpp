@@ -1,12 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright 2011-2026 Blender Foundation */
 
-#define ccl_gpu
-#define ccl_device inline
-#define ccl_global __global
-#define ccl_local __local
-#define ccl_constant __constant
-
+#include "kernel/device/opencl/compat.h"
 #include "kernel/device/gpu/kernel.h"
 
 extern "C" {
