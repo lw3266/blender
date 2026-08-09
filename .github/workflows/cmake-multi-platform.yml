@@ -94,7 +94,7 @@ jobs:
           ccache -z
           
           # Regular build execution
-          make release -j2 BUILD_CMAKE_ARGS="-DWITH_CYCLES_DEVICE_OPENCL=ON"
+          make release -j2 BUILD_CMAKE_ARGS="-DWITH_CYCLES_DEVICE_OPENCL=ON -DWITH_CYCLES_DEVICE_ONEAPI=OFF"
           
           # Print cache statistics at the end to verify hits/misses
           ccache -s
