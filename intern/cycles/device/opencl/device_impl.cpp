@@ -141,7 +141,15 @@ bool OpenCLDevice::compile_opencl_cpp_program()
    * so the include root must be the Cycles source directory.
    */
   const string source_root =
-      path_get("source");
+    path_get("source");
+
+  const string intern_root =
+    path_get("intern");
+
+  const string build_options =
+    string_printf("-cl-std=CL2.0 -H -I\"%s\" -I\"%s\"",
+                  source_root.c_str(),
+                  intern_root.c_str());
 
   const string build_options =
     string_printf("-cl-std=CL2.0 -I\"%s\"", source_root.c_str());
