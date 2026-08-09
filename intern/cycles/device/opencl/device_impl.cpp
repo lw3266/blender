@@ -134,25 +134,29 @@ bool OpenCLDevice::compile_opencl_cpp_program()
     return false;
   }
 
-  /* kernel.clcpp includes:
-   *
-   *   kernel/device/gpu/kernel.h
-   *
-   * so the include root must be the Cycles source directory.
-   */
-  const string source_root =
-    path_get("source");
+  /* List all include paths required by kernel source & intern dependencies */
+  const vector<string> include_dirs = {
+      path_get("source"),
+      path_get("source/util"),
+      path_get("source/kernel"),
+      path_get("source/kernel/device/gpu"),
+      path_get("source/kernel/device/opencl"),
+      path_get("intern"),
+      path_get("intern/atomic"),        /* Fixes #include "atomic_ops.h" */
+      path_get("intern/guardedalloc"),  /* Support for memory allocations/debugging */
+      path_get("extern"),               /* Support for third-party headers if needed */
+  };
 
-  const string intern_root =
-    path_get("intern");
+  string build_options = "-cl-std=CL2.0";
 
-  const string build_options =
-    string_printf("-cl-std=CL2.0 -I\"%s\" -I\"%s\"",
-                  source_root.c_str(),
-                  intern_root.c_str());
+  /* Optional preprocessor flags for GPU kernel logic */
+  build_options += " -D__KERNEL_GPU__ -D__KERNEL_OPENCL__";
+
+  for (const string &dir : include_dirs) {
+    build_options += string_printf(" -I\"%s\"", dir.c_str());
+  }
     
   LOG_INFO << "OpenCL kernel source: " << kernel_path;
-  LOG_INFO << "OpenCL include root: " << source_root;
   LOG_INFO << "OpenCL build options: " << build_options;
 
   err = clBuildProgram(
