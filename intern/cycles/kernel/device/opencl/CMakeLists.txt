@@ -11,6 +11,7 @@ endif()
 # List of OpenCL kernel source files
 set(SRC_OPENCL_KERNEL_FILES
   kernel.clcpp
+  compat.h
 )
 
 # -----------------------------------------------------------------------------
