@@ -17,7 +17,7 @@
  * -------------------------------------------------------------------- */
 
 #define ccl_device inline
-#define ccl_device_extern
+#define ccl_device_extern extern
 #define ccl_device_inline inline
 #define ccl_device_forceinline inline
 #define ccl_device_noinline

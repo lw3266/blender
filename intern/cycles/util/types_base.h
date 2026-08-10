@@ -4,7 +4,7 @@
 
 #pragma once
 
-#if !defined(__KERNEL_METAL__)
+#if !defined(__KERNEL_METAL__) && !defined(KERNEL_OPENCL)
 #  include <cstdlib>
 #endif
 
