@@ -147,7 +147,7 @@ bool OpenCLDevice::compile_opencl_cpp_program()
       path_get("extern"),               /* Support for third-party headers if needed */
   };
 
-  string build_options = "-cl-std=CL1.2";
+  string build_options = "-cl-std=CLC++";
 
   /* Optional preprocessor flags for GPU kernel logic */
   build_options += " -D__KERNEL_GPU__ -D__KERNEL_OPENCL__";
